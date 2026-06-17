@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Hub</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i data-lucide="database"></i>
+                </div>
+                <div>
+                    <h1>BigQuery <span>Release Notes</span></h1>
+                    <p class="subtitle">Stay updated with Google Cloud BigQuery developments</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="sync-status">
+                    <span id="cache-indicator" class="status-badge cache">Cache</span>
+                    <span id="last-fetched-text">Last fetched: --:--</span>
+                </div>
+                <button id="refresh-btn" class="btn btn-primary" title="Force Refresh">
+                    <i data-lucide="refresh-cw" id="refresh-icon"></i>
+                    <span>Refresh Feed</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="app-main">
+            <!-- Sidebar Controls -->
+            <aside class="app-sidebar">
+                <!-- Search Box -->
+                <div class="sidebar-card search-card">
+                    <h3>Search Feed</h3>
+                    <div class="search-input-wrapper">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search keywords..." autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Filter Card -->
+                <div class="sidebar-card filter-card">
+                    <h3>Categories</h3>
+                    <div class="filter-options">
+                        <button class="filter-btn active" data-category="all">
+                            <i data-lucide="layers"></i> All Updates
+                        </button>
+                        <button class="filter-btn" data-category="Feature">
+                            <span class="dot dot-feature"></span> Features
+                        </button>
+                        <button class="filter-btn" data-category="Announcement">
+                            <span class="dot dot-announcement"></span> Announcements
+                        </button>
+                        <button class="filter-btn" data-category="Change">
+                            <span class="dot dot-change"></span> Changes
+                        </button>
+                        <button class="filter-btn" data-category="Issue">
+                            <span class="dot dot-issue"></span> Issues
+                        </button>
+                        <button class="filter-btn" data-category="Breaking">
+                            <span class="dot dot-breaking"></span> Breaking
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistics Card -->
+                <div class="sidebar-card stats-card">
+                    <h3>Overview</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-total">0</span>
+                            <span class="stat-label">Total Notes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-features">0</span>
+                            <span class="stat-label">Features</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-announcements">0</span>
+                            <span class="stat-label">Announcements</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-issues">0</span>
+                            <span class="stat-label">Issues</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Release Notes Stream -->
+            <section class="feed-section">
+                <!-- Loading State -->
+                <div id="loading-spinner" class="feed-state">
+                    <div class="spinner"></div>
+                    <p>Loading release notes from the Google Cloud Atom feed...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="error-message" class="feed-state hidden">
+                    <div class="error-icon">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <h2>Failed to Load Notes</h2>
+                    <p id="error-details">Please check your network connection and try again.</p>
+                    <button class="btn btn-secondary" onclick="fetchReleaseNotes(true)">Retry Fetch</button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="feed-state hidden">
+                    <div class="empty-icon">
+                        <i data-lucide="inbox"></i>
+                    </div>
+                    <h2>No Matching Updates</h2>
+                    <p>Try adjusting your search query or filters.</p>
+                </div>
+
+                <!-- Timeline Feed -->
+                <div id="timeline-container" class="timeline-container hidden">
+                    <!-- Dynamic Content Injected Here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Twitter Composer Modal (X Sharing) -->
+    <div id="tweet-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Share on X (Twitter)</h2>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Draft and preview your post. Clicking "Post to X" will launch X Web Intent with this content.</p>
+                
+                <!-- Text Area for Tweet -->
+                <div class="textarea-wrapper">
+                    <textarea id="tweet-textarea" rows="5" maxlength="280"></textarea>
+                    <div class="textarea-footer">
+                        <span id="char-counter">0 / 280</span>
+                    </div>
+                </div>
+
+                <!-- Simulated X Preview Card -->
+                <div class="x-card-preview">
+                    <div class="x-preview-header">
+                        <div class="x-avatar">BQ</div>
+                        <div class="x-user-details">
+                            <span class="x-display-name">BigQuery Updates</span>
+                            <span class="x-handle">@BigQueryNotes</span>
+                        </div>
+                    </div>
+                    <div class="x-preview-content" id="x-preview-text">
+                        Loading preview...
+                    </div>
+                    <div class="x-preview-meta-card">
+                        <div class="meta-card-details">
+                            <span class="meta-domain">cloud.google.com</span>
+                            <span class="meta-title" id="x-meta-title">BigQuery Release Notes</span>
+                            <span class="meta-description">Read official BigQuery documentation release logs and service notices.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+                <button class="btn btn-tweet" id="post-tweet-btn">
+                    <i data-lucide="twitter"></i> Post to X
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
